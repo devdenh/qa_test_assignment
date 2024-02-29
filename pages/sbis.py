@@ -68,7 +68,11 @@ class Sbis(BasePage):
         self.click_button(LOCATOR_SBIS_DOWNLOAD_FOOTER)
 
     def get_download_class(self):
-        return self.find_element(LOCATOR_SBIS_FILE_DOWNLOAD)
+        """
+        беру 9 элемент, потому что
+        у него размер меньше остальных 6.4 мб
+        """
+        return self.find_elements(LOCATOR_SBIS_FILE_DOWNLOAD)[8]
 
     def get_download_href(self):
         """
@@ -81,17 +85,34 @@ class Sbis(BasePage):
     def compare_file_sizes(self):
         d_class_text = self.get_download_class().text
         d_link = self.get_download_href()
-        self.download_sbis_file(d_link)
-        return self.get_downloaded_sbis_filesize(), self.get_file_size_from_link(d_class_text)
+        file_name = self.download_sbis_file(d_link)
+        local_file_size = self.get_downloaded_sbis_filesize()
+        link_file_size = self.get_file_size_from_link(d_class_text)
+        os.remove(file_name)
+        return local_file_size,  link_file_size
 
     def get_file_size_from_link(self, link):
-        return ''.join([i for i in link if i.isdigit()])
+        """
+        возвращает целые числа из размера файла,
+        получаемый из ссылки на скачивание, вида:
+        'Скачать (6.4 МБ)'
+        """
+        start = link.find('(') + 1
+        stop = link.find('.')
+        return link[start:stop]
 
     def download_sbis_file(self, link):
         name = 'sbis.exe'
-        # request.urlretrieve(link, name)
+        request.urlretrieve(link, name)
+        return name
 
     def get_downloaded_sbis_filesize(self):
+        """
+        метод переводит размер в МБ и округляет
+        до целых
+
+        костыльное решение, есть идеи для оптимизации
+        """
         file_size = os.path.getsize('sbis.exe') / 1048576
-        file_size = str(round(file_size, 2)).replace('.', '')
+        file_size = str(round(file_size)).replace('.', '')
         return file_size
